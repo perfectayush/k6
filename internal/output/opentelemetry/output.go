@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	otelMetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 
@@ -95,6 +96,26 @@ func (o *Output) Start() error {
 		return fmt.Errorf("failed to create OpenTelemetry resource: %w", err)
 	}
 
+	// Define custom histogram buckets: 50ms to 60s
+	// Buckets in milliseconds: 50, 75, 100, 150, 200, 300, 500, 750, 1000, 1500, 2000, 3000, 5000, 7500, 10000, 15000, 20000, 30000, 45000, 60000
+	histogramBuckets := []float64{
+		50, 75, 100, 150, 200, 300, 500, 750,
+		1000, 1500, 2000, 3000, 5000, 7500,
+		10000, 15000, 20000, 30000, 45000, 60000,
+	}
+
+	// Create a view that applies custom buckets to all histogram instruments
+	histogramView := metric.NewView(
+		metric.Instrument{Kind: metric.InstrumentKindHistogram},
+		metric.Stream{
+			Aggregation: metric.AggregationExplicitBucketHistogram{
+				Boundaries: histogramBuckets,
+				NoMinMax:   false,
+				RecordMinMax: true,
+			},
+		},
+	)
+
 	meterProvider := metric.NewMeterProvider(
 		metric.WithResource(res),
 		metric.WithReader(
@@ -103,6 +124,7 @@ func (o *Output) Start() error {
 				metric.WithInterval(o.config.ExportInterval.TimeDuration()),
 			),
 		),
+		metric.WithView(histogramView),
 	)
 
 	pf, err := output.NewPeriodicFlusher(o.config.FlushInterval.TimeDuration(), o.flushMetrics)
