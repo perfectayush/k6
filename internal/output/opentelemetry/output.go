@@ -10,7 +10,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	otelMetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/metric"
-	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 
@@ -111,7 +110,6 @@ func (o *Output) Start() error {
 			Aggregation: metric.AggregationExplicitBucketHistogram{
 				Boundaries: histogramBuckets,
 				NoMinMax:   false,
-				RecordMinMax: true,
 			},
 		},
 	)
